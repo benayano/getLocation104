@@ -5,16 +5,18 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
-import android.os.Build
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var fusedLocationClient :FusedLocationProviderClient
 
     private val tvLongitude: TextView by lazy { findViewById(R.id.tvLongitude) }
     private val tvLatitude: TextView by lazy { findViewById(R.id.tvLatitude) }
@@ -35,27 +37,47 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
 
 
         button.setOnClickListener {
             setLocation(tvLongitude, tvLatitude)
+            getLastLocation()
         }
 
     }
+    @SuppressLint("MissingPermission")
+    private fun getLastLocation(){
+        if (permissionsGranted()) {
+            fusedLocationClient.lastLocation.addOnCompleteListener { task ->
+                if (task.isSuccessful && task.result != null) {
+                    tvLatitude.text = task.result.longitude.toString()
+                    tvLongitude.text = task.result.latitude.toString()
+                }
+
+            }
+        }
+    }
+
 
     @SuppressLint("MissingPermission")
     private fun setLocation(tvLongitude: TextView, tvLatitude: TextView) {
         if (permissionsGranted()) {
             locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)?.let {
 
-                tvLongitude.text = it.longitude.toString()
-                tvLatitude.text = it.latitude.toString()
-                Toast.makeText(this, "${it.longitude.toString()} \n${it.latitude.toString()}", Toast.LENGTH_LONG).show()
-            }
-            Toast.makeText(this, "יש הרשאה למיקום???????", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this,
+                    "${it.longitude.toString()} \n${it.latitude.toString()}",
+                    Toast.LENGTH_LONG
+                ).show()
 
+                tvLatitude.text = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER)!!.latitude.toString()
+            }
+
+            tvLongitude.text = locationManager.allProviders.toString()
+
+            Toast.makeText(this, "יש הרשאה למיקום???????", Toast.LENGTH_LONG).show()
         } else {
             Toast.makeText(this, "אין גישה למיקום מצטער!!!!!!!", Toast.LENGTH_LONG).show()
             requestLocationPermission()
@@ -95,7 +117,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-   
+
 }
 
 
